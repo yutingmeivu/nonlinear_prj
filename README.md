@@ -11,5 +11,5 @@
 - secant method
 
 ### An concrete example of how nn weight update works
-![procedure in a toy example](https://github.com/yutingmeivu/nonlinear_prj/blob/main/nonlinear.png)
+![procedure in a toy example](https://github.com/yutingmeivu/nonlinear_prj/blob/main/nonlinear.jpg)
 (still have some bugs, see if I can fix it🥲)
