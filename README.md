@@ -4,7 +4,7 @@
 
 ### optimization method:
 - steepest descent
-- conjugate gradient descent
+- conjugate gradient
 ### line search method to find step size t:
 - newton's method
 - regula falsi
