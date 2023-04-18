@@ -10,4 +10,6 @@
 - regula falsi
 - secant method
 
+### An concrete example of how nn weight update works
+
 (still have some bugs, see if I can fix it🥲)
