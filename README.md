@@ -41,13 +41,13 @@ of long valleys with steep sides and would be sensitive to the changes in certai
 
   - ##### Parameters
 
-   - ###### `layer` (`tuple`)
+    - ###### `layer` (`tuple`)
 
-   - the dimension of layer, once adding it would initialize the weight matirx with the dimension of tuple and the bias vector with dimension of (1, tuple[1]).
+    - the dimension of layer, once adding it would initialize the weight matirx with the dimension of tuple and the bias vector with dimension of (1, tuple[1]).
 
-   - ###### `type_` (`string`)
+    - ###### `type_` (`string`)
 
-   - specify if the layer is an fully connected layer or an activation layer.
+    - specify if the layer is an fully connected layer or an activation layer.
 
   - #### [activate]
 
@@ -59,17 +59,17 @@ of long valleys with steep sides and would be sensitive to the changes in certai
 
   - ##### Parameters
 
-   - ###### `loss` (`function`)
+    - ###### `loss` (`function`)
 
-   - loss function
+    - loss function
 
-   - ###### `loss_prime` (`function`)
+    - ###### `loss_prime` (`function`)
 
-   - first derivative of loss function
+    - first derivative of loss function
 
-   - ###### `loss_H` (`function`)
+    - ###### `loss_H` (`function`)
 
-   - second derivative of loss function
+    - second derivative of loss function
 
   - #### [predict]
 
