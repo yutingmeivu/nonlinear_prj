@@ -77,9 +77,9 @@ of long valleys with steep sides and would be sensitive to the changes in certai
 
   - ##### Parameters
 
-   - ###### `X` (`numpy array`)
+    - ###### `X` (`numpy array`)
 
-   - dataset for making prediction.
+    - dataset for making prediction.
 
   - #### [fit]
 
