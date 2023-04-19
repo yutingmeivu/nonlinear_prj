@@ -87,45 +87,45 @@ of long valleys with steep sides and would be sensitive to the changes in certai
 
   - ##### Parameters
 
-   - ###### `x_train, y_train` (`numpy array`)
+    - ###### `x_train, y_train` (`numpy array`)
 
-   - Training dataset.
+    - Training dataset.
 
-   - ###### `epoch` (`int`)
+    - ###### `epoch` (`int`)
 
-   - number of iterations specified from user for training.
+    - number of iterations specified from user for training.
 
-   - ###### `eta` (`float`)
+    - ###### `eta` (`float`)
 
-   - learning rate specified from user for gradient descent. When doing line search it's the step size in each iteration.
+    - learning rate specified from user for gradient descent. When doing line search it's the step size in each iteration.
 
-   - ###### `optim_method` (`string`)
+    - ###### `optim_method` (`string`)
 
-   - optimization method: ```gd```, ```steepest```, ```conjugate```.
+    - optimization method: ```gd```, ```steepest```, ```conjugate```.
 
-   -  ###### `search_method` (`string`)
+    -  ###### `search_method` (`string`)
 
-   - line search parameters: ```newton```, ```regula_falsi```, ```secant```.
+    - line search parameters: ```newton```, ```regula_falsi```, ```secant```.
 
-   - ###### `temp` (`Bool`)
+    - ###### `temp` (`Bool`)
 
-   - False by default. Used for control if update weight and bias, when doing line search and conjugate gradient method it is set to be True.
+    - False by default. Used for control if update weight and bias, when doing line search and conjugate gradient method it is set to be True.
 
-   - ###### `rand_low`, `rand_up` (`float`)
+    - ###### `rand_low`, `rand_up` (`float`)
 
-   - Parameter set for regula falsi and secant method for initialize two starting points, number for controlling the range of uniform distributed random number.
+    - Parameter set for regula falsi and secant method for initialize two starting points, number for controlling the range of uniform distributed random number.
 
-   - ###### `K` (`int`)
+    - ###### `K` (`int`)
 
-   - Number for specifying the number of iterations of line search and conjugate gradient method.
+    - Number for specifying the number of iterations of line search and conjugate gradient method.
 
-   - ###### `tolerate`, `tolerate_g`, `tolerate_distance` (`float`)
+    - ###### `tolerate`, `tolerate_g`, `tolerate_distance` (`float`)
 
-   - Stopping criteria of meassuring either gradient or distance between two points are less than $\delta,$ then stop running.
+    - Stopping criteria of meassuring either gradient or distance between two points are less than $\delta,$ then stop running.
 
-   - ###### `cg_formula` (`string`)
+    - ###### `cg_formula` (`string`)
 
-   - Formula function specified by user for conjugate gradient method, parameters can be ```Polak```: Polak-Ribi`ere c. g. formula, ```Fletcher```:  Fletcher-Reeves c. g. formula.
+    - Formula function specified by user for conjugate gradient method, parameters can be ```Polak```: Polak-Ribi`ere c. g. formula, ```Fletcher```:  Fletcher-Reeves c. g. formula.
 
   - #### [forward_prop]
 
