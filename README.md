@@ -10,8 +10,8 @@ A brief description of the project.
 
 ## Introduction
 In machine learning, backpropagation is a widely used algorithm for training feedforward neural networks by updating weight to minimize the error. However, since it used gradient descent as optimization algorithm 
-to find the minimum, it often takes a long time for converging on an acceptable solution[Akaike, Hirotugu 1959] On a successive transformation of probability distribution and its application to the analysis of the optimum gradient method. Annals of the Institute of Statistical Mathematics. Volume(11): 1-16. The gradient descent algorithm is especially vulnerable to slow convergence where the error surface consists
-of long valleys with steep sides and would be sensitive to the changes in certain directions, which is the case when 'ill-conditioned' case is met[Ruder, Sebastian 2016] An overview of gradient descent optimization algorithms. arXiv preprint arXiv:1609.04747. 
+to find the minimum, it often takes a long time for converging on an acceptable solution. The gradient descent algorithm is especially vulnerable to slow convergence where the error surface consists
+of long valleys with steep sides and would be sensitive to the changes in certain directions, which is the case when 'ill-conditioned' case is met.
  There're some methods designed which can construct searches to let solutions get rid of characteristic of graident scheme and outperformed the back-propagation method, such as conjugate gradient algorithm\cite{charalambous1992conjugate}, the Modified Back-Propagation Method\cite{vogl1988accelerating} and some techniques based on gradient method\cite{haji2021comparison}.
 
 ### optimization method:
