@@ -52,7 +52,7 @@ net.fit(x_train, y_train, epochs=1000, eta = 0.1, optim_method = 'gd', search_me
         rand_low = None, rand_up = None, K = None, tolerate = None, tolerate_g = None, tolerate_distance = None, cg_formula = None)
 ```
         
-You can specify the optimization method with ```python optim_method ``` and ```python search_method ``` to specify.
+You can specify the optimization method with ```optim_method ``` and ```search_method ``` to specify.
 
 Example of doing conjugate method with newton's method as line search in optimization:
 
