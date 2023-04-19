@@ -61,8 +61,3 @@ net.use(mse, mse_prime, mse_second)
 net.fit(x_train, y_train, epochs=1000, eta = 0.1, optim_method = 'conjugate', search_method = 'newton', temp = None, linesearch = None, \
         rand_low = None, rand_up = None, K = 500, tolerate = 0.01, tolerate_g = 0.01, tolerate_distance = 0.01, cg_formula = 'Polak')
 ```
-
-### Changelog
-
-- v1.0.0: Initial release.
-
