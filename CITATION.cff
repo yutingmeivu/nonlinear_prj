@@ -1,0 +1,70 @@
+@ARTICLE{RePEc:spr:aistmt:v:11:y:1959:i:1:p:1-16,
+title = {On a successive transformation of probability distribution and its application to the analysis of the optimum gradient method},
+author = {Akaike, Hirotugu},
+year = {1959},
+journal = {Annals of the Institute of Statistical Mathematics},
+volume = {11},
+number = {1},
+pages = {1-16},
+url = {https://EconPapers.repec.org/RePEc:spr:aistmt:v:11:y:1959:i:1:p:1-16}
+}
+
+@article{charalambous1992conjugate,
+  title={Conjugate gradient algorithm for efficient training of artificial neural networks},
+  author={Charalambous, Christakis},
+  journal={IEE Proceedings G (Circuits, Devices and Systems)},
+  volume={139},
+  number={3},
+  pages={301--310},
+  year={1992},
+  publisher={IET}
+}
+
+@article{vogl1988accelerating,
+  title={Accelerating the convergence of the back-propagation method},
+  author={Vogl, Thomas P and Mangis, JK and Rigler, AK and Zink, WT and Alkon, DL},
+  journal={Biological cybernetics},
+  volume={59},
+  pages={257--263},
+  year={1988},
+  publisher={Springer}
+}
+
+@article{ruder2016overview,
+  title={An overview of gradient descent optimization algorithms},
+  author={Ruder, Sebastian},
+  journal={arXiv preprint arXiv:1609.04747},
+  year={2016}
+}
+
+@article{haji2021comparison,
+  title={Comparison of optimization techniques based on gradient descent algorithm: A review},
+  author={Haji, Saad Hikmat and Abdulazeez, Adnan Mohsin},
+  journal={PalArch's Journal of Archaeology of Egypt/Egyptology},
+  volume={18},
+  number={4},
+  pages={2715--2743},
+  year={2021}
+}
+
+@article{bishop1994neural,
+  title={Neural networks and their applications},
+  author={Bishop, Chris M},
+  journal={Review of scientific instruments},
+  volume={65},
+  number={6},
+  pages={1803--1832},
+  year={1994},
+  publisher={American Institute of Physics}
+}
+
+@article{dongare2012introduction,
+  title={Introduction to artificial neural network},
+  author={Dongare, AD and Kharde, RR and Kachare, Amit D and others},
+  journal={International Journal of Engineering and Innovative Technology (IJEIT)},
+  volume={2},
+  number={1},
+  pages={189--194},
+  year={2012},
+  publisher={Citeseer}
+}
