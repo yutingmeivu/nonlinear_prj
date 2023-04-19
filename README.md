@@ -1,8 +1,10 @@
 # Comparision of performance of nonlinear optimization method used in accelerating multi neuron network
 
+we compared two optimization method: conjugate gradient method with classic gradient descent in fully connected multi neuron network. Newton's method, regula falsi and secant method would be covered. 
+
 ## Table of Contents
 
-- Introduction
+- [Introduction](#introduction)
 - [Usage](#usage)
 - [Examples](#examples)
 
@@ -21,7 +23,145 @@ of long valleys with steep sides and would be sensitive to the changes in certai
 - secant method
 
 ## Usage
-we compared two optimization method: conjugate gradient method with classic gradient descent in fully connected multi neuron network. Newton's method, regula falsi and secant method would be covered. 
+
+### [losses.py](https://github.com/yutingmeivu/nonlinear_prj/blob/main/code/losses.py)
+  - Set up objective function of problem.
+
+### [network.py](https://github.com/yutingmeivu/nonlinear_prj/blob/main/code/network.py)
+
+  - Construction of multi layer neural network. 
+
+  - #### [load]
+
+  - Add training dataset of X(D by N) and Y(D by 1).
+
+  - #### [add]
+
+  - Add fully connected layer.
+
+  - ##### Parameters
+
+   - ###### `layer` (`tuple`)
+
+   - the dimension of layer, once adding it would initialize the weight matirx with the dimension of tuple and the bias vector with dimension of (1, tuple[1]).
+
+   - ###### `type_` (`string`)
+
+   - specify if the layer is an fully connected layer or an activation layer.
+
+  - #### [activate]
+
+  - Add activation layer.
+
+  - #### [use]
+
+  - Specify loss function to use about optimization
+
+  - ##### Parameters
+
+   - ###### `loss` (`function`)
+
+   - loss function
+
+   - ###### `loss_prime` (`function`)
+
+   - first derivative of loss function
+
+   - ###### `loss_H` (`function`)
+
+   - second derivative of loss function
+
+  - #### [predict]
+
+  - Prediction for dataset.
+
+  - ##### Parameters
+
+   - ###### `X` (`numpy array`)
+
+   - dataset for making prediction.
+
+  - #### [fit]
+
+  - Forward and backforward weight update from layer to layer.
+
+  - ##### Parameters
+
+   - ###### `x_train, y_train` (`numpy array`)
+
+   - Training dataset.
+
+   - ###### `epoch` (`int`)
+
+   - number of iterations specified from user for training.
+
+   - ###### `eta` (`float`)
+
+   - learning rate specified from user for gradient descent. When doing line search it's the step size in each iteration.
+
+   - ###### `optim_method` (`string`)
+
+   - optimization method: ```gd```, ```steepest```, ```conjugate```.
+
+   -  ###### `search_method` (`string`)
+
+   - line search parameters: ```newton```, ```regula_falsi```, ```secant```.
+
+   - ###### `temp` (`Bool`)
+
+   - False by default. Used for control if update weight and bias, when doing line search and conjugate gradient method it is set to be True.
+
+   - ###### `rand_low`, `rand_up` (`float`)
+
+   - Parameter set for regula falsi and secant method for initialize two starting points, number for controlling the range of uniform distributed random number.
+
+   - ###### `K` (`int`)
+
+   - Number for specifying the number of iterations of line search and conjugate gradient method.
+
+   - ###### `tolerate`, `tolerate_g`, `tolerate_distance` (`float`)
+
+   - Stopping criteria of meassuring either gradient or distance between two points are less than $\delta,$ then stop running.
+
+   - ###### `cg_formula` (`string`)
+
+   - Formula function specified by user for conjugate gradient method, parameters can be ```Polak```: Polak-Ribi`ere c. g. formula, ```Fletcher```:  Fletcher-Reeves c. g. formula.
+
+  - #### [forward_prop]
+
+  - Forward propagation.
+
+  - #### [back_prop]
+
+  - Backward propagation.
+
+  - #### [newton_1d]
+
+  - Newton's method for one iteration of line search.
+  
+  - #### [generate_starp]
+
+  - Initializing starting point for regula falsi and secant method, return t.
+  
+  - #### [regula_falsi]
+
+  - Regula-Falsi method for doing line search to find appropriate step size for one iteration of line search, return $t_0, t_1.$
+  
+  - #### [secant_method]
+
+  - Secant method method for doing line search to find appropriate step size for one iteration of line search, return $t_0, t_1.$
+  
+  - #### [lineSearch]
+
+  - function for doing newton's method, regula-falsi, secant method with different stopping criteria, return $t$ for one iteration of weight update.
+  
+  - #### [conjugate_gradient_pk]
+
+  - function for doing conjugate gradient method to get search direction $p_k$ in one iteration based on information from last iteration.
+  
+  - #### [conjugate_gradient]
+
+  - function for doing conjugate gradient method for one iteration of doing weight update. Do either steepest descent or conjugate method based on restart criteria for iterations $K$ times, stop and return $p_k$ if meet stopping criteria.
 
 ### Examples
 
