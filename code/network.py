@@ -3,303 +3,298 @@ import matplotlib.pyplot as plt
 
 class NN:
     def __init__(self):
-        self.layers = []
+        # self.layers = []
         self.loss = None
         self.loss_prime = None
         self.loss_H = None
         self.weight = []
         self.bias = []
-        # self.x_train = x_train
-        # self.y_train = y_train
-        # self.input_size = input.shape[1]
-        # self.output_size = output.shape[1]
-        # self.weight = weight if weight else np.random.rand(self.input_size, self.output_size) # D*N matrix
-        # self.bias = bias if bias else np.random.rand(1, self.output_size) # 1*N vector
+        self.input_layer = []
+        self.weight_tmp = []
+        self.bias_tmp = []
+        self.layer = 0
         
     def load(self, x_train, y_train):
         self.x_train = x_train
         self.y_train = y_train
         
-    def activate(self, activation, activation_prime):
+    def activate(self, activation, activation_prime, activation_h):
         self.activation = activation
         self.activation_prime = activation_prime
+        self.activation_h = activation_h
         
     def add(self, layer, type_):
         if type_ == 'fc':
             self.weight.append([np.random.rand(layer[0], layer[1])]) # D*N matrix
             self.bias.append([np.random.rand(1, layer[1])]) # 1*N vector
         else:
-            self.weight.append(np.empty((layer[0], layer[1]), dtype=object))
-            self.bias.append(np.empty((1, layer[1]), dtype=object))
+            # activation layer doesn't have w & b
+            self.weight.append([None])
+            self.bias.append([None])
+        self.layer += 1
     
     def use(self, loss, loss_prime, loss_H):
         self.loss = loss
         self.loss_prime = loss_prime
         self.loss_H = loss_H
         
-    def predict(self, X):
-        result = []
-        N = X.shape[0] # number of observations
-        # running through X row by row, so actually the input data is a piece of vector with 1 * D repeated for N times
-        for i in range(N):
-            # go through all layers in NN
-            output = X[i]
-            for layer in self.layers:
-                output = layer.forward_prop(output)
-            result.append(output)
-        return result
-    
-    def initialize(self, E_y, index):
-        g_w = np.matmul(self.x_train[index].T, E_y)
-        g_b = E_y
-        # g_w = None
-        # g_b = None
-        H_w = None 
-        H_b = None
-        return g_w, g_b, H_w, H_b
-    
-    def fit(self, x_train, y_train, epochs, eta, optim_method, search_method, temp, linesearch, rand_low, rand_up, K, tolerate, tolerate_g, tolerate_distance, cg_formula):
-        N = x_train.shape[0]
-        err = 0
-        err_path = []
-        for i in range(epochs):
-            for j in range(N):
-                output = x_train[j]
-                for index_f, layer in enumerate(self.layers):
-                    output = layer.forward_prop(output, index_f)
-                err += self.loss(output, y_train[j])
-                
-                back_error = self.loss_prime(output, y_train[j])
-                H_back = self.loss_H(output, y_train[j])
-                g_w, g_b, H_w, H_b = self.initialize(back_error, j)
-                for index, layer in enumerate(reversed(self.layers)):
-                    back_error, g_w, g_b, H_w, H_b = layer.back_prop(back_error, H_back, eta, optim_method, search_method, False, False, rand_low, rand_up, K, tolerate, tolerate_g, tolerate_distance, cg_formula, g_w, g_b, H_w, H_b, None, j, index, None, self.layers)
-                    
-            err = err / N
-            err_path.append(err)
-            # print(f'epoch {i} / {epochs} with error = {round(err, 5)}.')
-        plt.plot(err_path)
-        plt.title(f'Loss with back propagation weight and bias update with {optim_method} using {search_method} line search')
-        plt.xlabel('number of iterations')
-        plt.show()
-        
-    def forward_prop(self, input_data, index):
-        self.input = input_data
-        w = self.weight[index] if self.line == False else self.weight_tmp[index]
-        b = self.bias[index] if self.line == False else self.weight_tmp[index]
-        self.output = np.matmul(self.input, w) + b
+    def forward_prop(self, input_data, layer_index):
+        self.input_layer.append(input_data) # X in each layer
+        if self.weight[layer_index][0] is not None:
+            self.output = np.dot(input_data, self.weight[layer_index]) + self.bias[layer_index]
+        else:
+            self.output = self.activation(input_data)
         return self.output
     
-    def back_prop(self, E_y, E_y2, eta, optim_method, search_method, temp, linesearch, rand_low, rand_up, K, tolerate, \
-                tolerate_g, tolerate_distance, cg_formula, g_w = None, g_b = None, H_w = None, H_b = None, pk = None, j = None, index = None, partial = None, l = None):
-        # E_y output_err: error comes from the layer behid the current layer (dE/ dY)
-        # update items: weight, bias
-        # output: error from current layer with (w,b), supposed to pass into the previous layer
-        # temp: if True, then it's doing line search something to find t candidate, we don't want to update w and b
-        # print('backward dE dY', E_y.shape, 'self.weight.T', self.weight.T.shape, 'self.input.T, X.T', self.input.T.shape)
-        # print('*'*10)
-        g_x = np.matmul(E_y, self.weight.T) # dE/dX = dE/dY times W.T
-        g_w = np.matmul(self.input.T, E_y)
-        g_b = E_y
-        if ((optim_method == 'steepest') | (optim_method == 'conjugate')) & (search_method == 'newton'):    
-            H_w = E_y2 * np.matmul(self.input.T, self.input)
-            H_b = E_y2
+    def backward_prop(self, output_error, output_hessian, layer_index, step_size, pk, partial, linesearch, search_pk):
+        # output_error = dE/dY
+        if self.weight[layer_index][0] is not None:
+            input_error = np.dot(output_error, self.weight[layer_index].T) # dE/dX = dE/dY * W.T
+            weights_error = np.dot(self.input_layer[layer_index].T, output_error) # dE/dW = X.T dE/dY
+            bias_error = output_error # dE/dB = dE/dY
+            input_h = np.dot(output_hessian, self.weight[layer_index].T) + np.dot(output_error, output_hessian) # (d^2 E/dY^2) * (dY/dX)^T + (dE/dY) * (d^2 Y/dX^2)
+            weight_h = np.dot(np.dot(self.input_layer[layer_index].T, output_hessian), self.input_layer[layer_index]) # d^2E/dW^2 = X^T d^2E/dY^2 X
+            bias_h = output_hessian # d^2E/dB^2 = d^2E/dY^2
         else:
-            H_w = None
-            H_b = None
-        if optim_method == 'gd':
-            dk_weight = - eta * g_w
-            dk_bias = - eta * E_y
-        else:
+            input_error = self.activation_prime(self.input_layer[layer_index]) * output_error # dE/dX = dE/dY \odot \sigma'(X)
+            weights_error = np.dot(self.input_layer[layer_index].T, output_error * self.activation_prime(self.input_layer[layer_index])) # dE/dW = X.T (dE/dY \odot sigma'(X))
+            bias_error = output_error * self.activation_prime(self.input_layer[layer_index]) # dE/dB = dE/dY \odot sigma'(X)
+            input_h = np.dot(output_hessian * self.activation_prime(self.input_layer[layer_index]), self.weight[layer_index].T) + output_error * self.activation_h(self.input_layer[layer_index]) # (d^2 E/ dY^2) * sigma'(X) * (dY/dX)^T + (dE/dY) * sigma''(X)
+            sigma_prime = self.activation_prime(self.input_layer[layer_index])
+            sigma_h = self.activation_h(self.input_layer[layer_index])
+            weight_h = np.dot(self.input_layer[layer_index].T, (output_hessian * np.dot(sigma_prime.T , sigma_prime) + output_error * sigma_h))
+            # X.T * (d^2 E/dY^2 \odot sigma'(Z)^2 + dE/dY \odot sigma''(Z))
+            # weight_h = np.dot(self.input_layer[layer_index].T, (np.dot(self.activation_prime(self.input_layer[layer_index]) * output_hessian, np.dot(self.weight[layer_index].T, self.weight[layer_index])) + np.dot(output_error, self.activation_h(self.input_layer[layer_index]) * self.weight[layer_index]) )) # X.T * (sigma'(X) * (d^2 E/dY^2) * W.T^2 + (dE/dY) * (sigma''(X) * W.T))
+            bias_h = output_hessian * self.activation_prime(self.input_layer[layer_index]) + output_error * self.activation_h(self.input_layer[layer_index]) # d^2E/dY^2 \odot sigma'(XW+ B) + dE/dY sigma''(XW + B)
+        if (linesearch) | (search_pk):
+            # step_size: step_size_w or step_size_b, same as pk
+            # linesearch: True(don't update weight until get step size t), same as search_pk
             if optim_method == 'steepest':
-                pkw = -g_w
-                pkb = -g_b
-                t_w, t_b = self.lineSearch(None, None, optim_method, search_method, temp, linesearch, rand_low, rand_up, K, tolerate, tolerate_g, tolerate_distance, cg_formula, j, E_y, E_y2, g_w, g_b, H_w, H_b, pk)
-                dk_weight = t_w[j][index] * pkw
-                dk_bias = t_b[j][index] * pkb
-                self.line = True
-            elif optim_method == 'conjugate':
-                t_w, t_b = self.lineSearch(None, None, optim_method, search_method, temp, linesearch, rand_low, rand_up, K, tolerate, tolerate_g, tolerate_distance, cg_formula, j, E_y, E_y2, g_w, g_b, H_w, H_b, pk)
-                pkw = self.conjugate_gradient('w', search_method, rand_low, rand_up, K, tolerate_g, tolerate_distance, cg_formula, \
-                                 None, None, None, None)
-                pkb = self.conjugate_gradient('b', search_method, rand_low, rand_up, K, tolerate_g, tolerate_distance, cg_formula, \
-                                 None, None, None, None)
-                dk_weight = t_w[j][index] * pkw
-                dk_bias = t_b[j][index] * pkb
-        self.weight_tmp += dk_weight
-        self.bias_tmp += dk_bias
-        if (temp == False) | (optim_method == 'gd'):
-            self.weight += dk_weight
-            self.bias += dk_bias
-            self.weight_tmp = self.weight.copy()
-            self.bias = self.bias.copy()
-            self.line = True
-            # self.weight_layer[self.layer_num - 1] = self.weight 
-            # self.bias_layer[self.layer_num - 1] = self.bias
-        return g_x, g_w, g_b, H_w, H_b
+                pk = - weights_error if partial == 'w' else - bias_error
+            if partial == 'w':
+                self.weight_tmp[layer_index] += step_size * pk
+            else:
+                self.bias_tmp[layer_index] += step_size * pk
+        else:
+            if (optim_method == 'gd') | (optim_method == 'steepest'):
+                self.weight[layer_index] -= step_size[0] * weights_error
+                self.bias[layer_index] -= step_size[1] * bias_error
+                self.weight_tmp[layer_index] = self.weight[layer_index]
+                self.bias_tmp[layer_index] = self.bias[layer_index]
+            else:
+                # step_size: (step_size_w, step_size_b), same as pk
+                self.weight[layer_index] += step_size[0] * pk[0]
+                self.bias[layer_index] += step_size[1] * pk[1]
+                self.weight_tmp[layer_index] = self.weight[layer_index]
+                self.bias_tmp[layer_index] = self.bias[layer_index]
+        return input_error, input_h, weights_error, bias_error, weight_h, bias_h
     
-    def initialize(self, E_y, index):
-        g_w = np.matmul(self.x_train[index].T, E_y)
-        g_b = E_y
-        # g_w = None
-        # g_b = None
-        H_w = None 
-        H_b = None
-        return g_w, g_b, H_w, H_b    
+    def fit(self, epochs, eta, optim_method, linesearch_method, rand_low, rand_up, K, tolerate, cg_formula, print_rate, plt_rate):
+        samples = len(self.x_train)
+        err_path = []
+        
+        for i in range(epochs):
+            err = 0
+            for j in range(samples):
+                output = self.x_train[j]
+                for m in range(self.layer):
+                    output = self.forward_prop(output, m)
+                
+                err += self.loss(y_train[j], output)
+                output_error = self.loss_prime(y_train[j], output)
+                output_hessian = self.loss_h(y_train[j], output)
+                for n in reversed(range(self.layer)):
+                    if optim_method == 'gd':
+                        output_error, output_hessian, weights_error, bias_error, weight_h, bias_h = self.backward_prop(output_error, output_hessian, n, (eta, eta), None, None, False, False)
+                    elif optim_method == 'steepest':
+                        t_w = self.linesearch(linesearch_method, 'w', start_g, rand_low, rand_up, K, tolerate)
+                        t_b = self.linesearch(linesearch_method, 'b', start_g, rand_low, rand_up, K, tolerate)
+                        output_error, output_hessian, weights_error, bias_error, weight_h, bias_h = self.backward_prop(output_error, output_hessian, n, (t_w, t_b), None, None, False, False)
+                    elif optim_method == 'conjugate':
+                        t_w = self.linesearch(linesearch_method, 'w', start_g, rand_low, rand_up, K, tolerate)
+                        t_b = self.linesearch(linesearch_method, 'w', start_g, rand_low, rand_up, K, tolerate)
+                        pk_w = self.conjugate_gradient(linesearch_method, 'w', rand_low, rand_up, K, tolerate, cg_formula)
+                        pk_b = self.conjugate_gradient(linesearch_method, 'b', rand_low, rand_up, K, tolerate, cg_formula)
+                        output_error, output_hessian, weights_error, bias_error, weight_h, bias_h = self.backward_prop(output_error, output_hessian, n, (t_w, t_b), (pk_w, pk_b), None, False, False)
+                
+            err /= samples
+            if print_rate:
+                print('epoch %d/%d   error=%f' % (i+1, epochs, err))
+            if plt_rate:
+                err_path.append(err)
+                plt.plot(err_path)
+                plt.title(f'Loss with back propagation weight and bias update with {optim_method} using {search_method} line search')
+                plt.xlabel('number of iterations')
+                plt.show()
     
     @staticmethod
-    def newton_1d(t, partial, E_y, E_y2, g_w, g_b, H_w, H_b):
-        # t: t_w, t_b
-        # g: g_w, g_b
-        # H: H_w, H_b
-        # N = self.input.shape[0]
-#         output = self.input
-        
-#         back_error = self.loss_prime(output, self.y_train[j])
-#         H_back = self.loss_H(output, self.y_train[j])
-#         g_w, g_b, H_w, H_b = self.initialize(back_error, j)
-#         # for index, layer in enumerate(reversed(self.layers)):
-#         print('newton before', 'newton dE/dY', back_error.shape, 'newton dE^2/dY^2, number', 'newton before dE/dW', g_w.shape)
-#         print("="*10)
-#         back_error, g_w, g_b, H_w, H_b = self.back_prop(back_error, H_back, t, optim_method, 'newton', True, True, rand_low, rand_up, K, tolerate, tolerate_g, tolerate_distance, cg_formula, g_w, g_b, H_w, H_b, None, j)
-#         print('newton after', 'newton dE/dY', back_error.shape, 'newton dE^2/dY^2 number', 'newton after dE/dW', g_w.shape)
-        t = t - np.matmul(np.linalg.inv(H_w), g_w) if partial == 'w' \
-        else t - np.matmul(np.linalg.inv(H_b), g_b) # since the f' and f'' of newton's method is actually the Jacobian matrix and hessian matrix of objective function, so used matrix manipulation
-        return t
-    
-    # def newton_1d(t, J, H):
-    #   return t - J / H
-    
-    def generate_startp(self, t_0, rand_low, rand_up, partial, optim_method, K, tolerate, tolerate_g, tolerate_distance, cg_formula, j):
-        rand = np.random.uniform(rand_low, rand_up)
-        t_1 = t_0 + rand
-        g_w0, g_b0, H_w0, H_b0 = self.initialize(back_error)
-        back_error0, g_w0, g_b0, H_w0, H_b0 = self.layers[-1].back_prop(back_error0, None, t_0, None, optim_method, 'secant', True, True, rand_low, rand_up, K, tolerate, tolerate_g, tolerate_distance, cg_formula, g_w0, g_b0, H_w0, H_b0, None)
-        g_w1, g_b1, H_w1, H_b1 = self.initialize(back_error)
-        back_error1, g_w1, g_b1, H_w1, H_b1 = self.layers[-1].back_prop(back_error1, None, t_1, None, optim_method, 'secant', True, True, rand_low, rand_up, K, tolerate, tolerate_g, tolerate_distance, cg_formula, g_w1, g_b1, H_w1, H_b1, None)
-        det_g0 = np.linalg.det(g_w0) if partial == 'w' else np.linalg.det(g_b0)
-        det_g1 = np.linalg.det(g_w1) if partial == 'w' else np.linalg.det(g_b1)
-        return det_g0, det_g1, back_error0, g_w0, g_b0, t_1, back_error1, g_w1, g_b1
-    
-    def regula_falsi(self, t_0, t_1, k, rand_low, rand_up, partial, optim_method, K, tolerate, j):
-        # n = len(self.layers)
-        back_error0 = self.loss_prime(self.x_train, self.y_train)
-        back_error1 = self.loss_prime(self.x_train, self.y_train)
-        if k == 0:
-            # t_0 = np.zeros(n)
-            t_0 = 0
-            det_g0, det_g1, back_error0, g_w0, g_b0, t_1, back_error1, g_w1, g_b1 = self.generate_startp(t_0, rand_low, rand_up, partial, optim_method, K, tolerate, tolerate_g, tolerate_distance, cg_formula, j)
-            while np.sign(det_g0 * det_g1) == 1:
-                det_g0, det_g1, back_error0, g_w0, g_b0, t_1, back_error1, g_w1, g_b1 = self.generate_startp(t_0, rand_low, rand_up, partial, optim_method, K, tolerate, tolerate_g, tolerate_distance, cg_formula, j)
+    def newton1d(t, partial, g, h): 
+        t = t - np.matmul(np.linalg.inv(h), g) # since the f' and f'' of newton's method is actually the Jacobian matrix and hessian matrix of objective function, so used matrix manipulation
+        return t       
+            
+    def linesearch(self, linesearch_method, partial, start_g, rand_low, rand_up, K, tolerate):
+        # start_g: gradient of either weight and bias from fit
+        if linesearch_method == 'newton':
+            t_layers, dgtmp, gtmp, err = [0] * len(self.weight)
+            for i in range(4):
+                t_layers = update_linesearch(i, t_layers, start_g, partial, linesearch_method)
+                self.weight_tmp = self.weight
+                self.bias_tmp = self.bias
         else:
-            # layers_loop = self.layers
-            # for index, layer in enumerate(reversed(layers_loop)):
-            # t_{w+1} = (t_w0 J(w + t_w1 p_w) - t_w1 J(w + t_w0 p_w))/(J(w + t_w1 p_w) - J(w + t_w0 p_w))
-            g_0 = g_w0 if partial == 'w' else g_b0
-            g_1 = g_w1 if partial == 'w' else g_b1
-            diff = g_w1 - g_w0 if partial == 'w' else g_b1 - g_b0
-            t_temp_n = t_0 * g_1 - t_1 * g_0
-            t_tmp = np.linalg.inv(diff) @ t_temp_n
-            back_errort, g_wt, g_bt, H_wt, H_bt = self.back_prop(back_error0, None, t_tmp, None, optim_method, 'regula_falsi', rand_low, rand_up, K, tolerate, tolerate_g, tolerate_distance, cg_formula, g_w0, g_b0, None, None, None, j)
-            det_gt = np.linalg.det(g_wt) if partial == 'w' else np.linalg.det(g_bt)
-            if np.sign(det_gt * det_g0) == -1:
-                t_1 = t_tmp
-                if partial == 'w':
-                    g_w1 = g_wt 
-                else:
-                    g_b1 = g_bt
-            else:
-                t_0 = t_tmp
-                if partial == 'w':
-                    g_w0 = g_wt
-                else:
-                    g_b0 = g_bt
-        return t_0, t_1
-    
-    def secant_method(self, rand_low, rand_up, partial, optim_method, K, tolerate, j):
-        rand = np.random.uniform(rand_low, rand_up, j)
-        # n = len(self.layers)
-        # t_0 = np.zeros(n)
-        t_0 = 0
-        t_1 = t_0 + rand
-        back_error0 = self.loss_prime(self.x_train, self.y_train)
-        back_error1 = back_error0
-        g_w0, g_b0, H_w0, H_b0 = self.initialize(back_error)
-        g_w1, g_b1, H_w1, H_b1 = self.initialize(back_error)
-        # for index, layer in enumerate(reversed(self.layers)):
-        back_error0, g_w0, g_b0, H_w0, H_b0 = self.back_prop(back_error0, None, t_0, None, optim_method, 'secant', True, True, rand_low, rand_up, K, tolerate, None, None, None, g_w0, g_b0, None, None, None)
-        back_error1, g_w1, g_b1, H_w1, H_b1 = self.back_prop(back_error0, None, t_1, None, optim_method, 'secant', True, True, rand_low, rand_up, K, tolerate, None, None, None, g_w1, g_b1, None, None, None)
-        g_0 = g_w0 if partial == 'w' else g_b0
-        g_1 = g_w1 if partial == 'w' else g_b1
-        diff = g_w1 - g_w0 if partial == 'w' else g_b1 - g_b0
-        t_temp_n = t_0 * g_1 - t_1 * g_0
-        t_tmp = np.linalg.inv(diff) @ t_temp_n
-        t_0 = t_1
-        t_1 += t_tmp
-        return t_0, t_1
-    
-    def lineSearch(self, t_w, t_b, optim_method, search_method, temp, linesearch, rand_low, rand_up, K, tolerate, tolerate_g, tolerate_distance, cg_formula, j, E_y, E_y2, g_w, g_b, H_w, H_b, pk):
-        # t initial: [0,0,...,0] list with length as same as number of layers
-        # n = len(self.layers)
-        t_w = t_w if t_w else 0 # store in reversed order, which is 0th is the last layer
-        t_b = t_b if t_b else 0
-        k = 0
-        N = self.x_train.shape[0]
-        t_ws = [t_w]
-        t_bs = [t_b]
-        t_wsum = []
-        t_bsum = []
-        # for newton and secant method, we don't stop if it diverges, instead just observe the result of loss function, if diverge it would get increases as iteration increases, we can observe its frequency
-        
-        for i in range(4):
-            for j in range(N):
-                output = self.x_train[j]
-                for layer in self.layers:
-                    output = layer.forward_prop(output)
-                err += self.loss(output, y_train[j])
-                    
-                back_error = self.loss_prime(output, y_train[j])
-                H_back = self.loss_H(output, y_train[j])
-                g_w, g_b, H_w, H_b = self.initialize(back_error, j)
+            t_layers0 = [0] * len(self.weight)
+            rand = np.random.uniform(rand_low, rand_up)
+            t_layers1 = [rand] * len(self.weight)
+            t_tmp = [None] * len(self.weight)
+            k = 0
+            if linesearch_method == 'regula_falsi':
+                dg0 = self.generate_startp(t_layers0, partial)
+                dg1 = self.generate_startp(t_layers1, partial)
+                for i in range(len(t_layers[0])):
+                    while dg0[i] * dg1[i] >= 0:
+                        rand = np.random.uniform(rand_low, rand_up)
+                        t_layers1[i] = [rand] * len(self.weight)
+                        dg1 = self.generate_startp(t_layers1, partial, k)
+            g0 = start_g
+            g1 = start_g
+            gt = start_g
+            dis = np.linalg.norm(t_layers0 - t_layers1)
+            while (k < K) & (dis > tolerate):
+                tmp, dg0, g0, err0 = self.subupdate(i, t_layers0, None, g0, partial, linesearch_method, optim_method)
+                self.weight_tmp = self.weight
+                self.bias_tmp = self.bias
+                tmp, dg1, g1, err1 = self.subupdate(i, t_layers1, None, g1, partial, linesearch_method, optim_method)
+                self.weight_tmp = self.weight
+                self.bias_tmp = self.bias
+                for i in range(len(dg0)):
+                    t_tmp[i] = self.rf_sc(partial, t_layers0[i], t_layers1[i], g0[i], g1[i])
+                tmp, dgt, gt, errt = self.subupdate(i, tmp, None, gt, partial, linesearch_method, optim_method)
+                self.weight_tmp = self.weight
+                self.bias_tmp = self.bias
+                if linesearch_method == 'regula_falsi':
+                    for i in range(len(t_layers[0])):
+                        if dgt[i] * dg0[i] < 0:
+                            t_layers1[i] = t_tmp[i]
+                            g1[i] = gt[i]
+                            err1 = errt
+                        else:
+                            t_layers0[i] = t_tmp[i]
+                            g0[i] = gt[i]
+                            err0 = errt
+                elif linesearch_method == 'secant':
+                    t_layers0 = t_layers1
+                    t_layers1 = t_tmp
+                dis = np.linalg.norm(t_layers0 - t_layers1)
+                k += 1
                 
-                for index, layer in enumerate(reversed(self.layers)):
-                    if search_method == 'newton':
-                        back_error, g_w, g_b, H_w, H_b = layer.back_prop(back_error, H_back, t_w, optim_method, search_method, False, False, rand_low, rand_up, K, tolerate, tolerate_g, tolerate_distance, cg_formula, g_w, g_b, H_w, H_b, None, j, index, 'w')
-                        
-                        t_ws.append(newton_1d(t_ws[j][index], 'w', backerror, H_back, g_w, g_b, H_w, H_b))
-                        back_error, g_w, g_b, H_w, H_b = layer.back_prop(back_error, H_back, t_b, optim_method, search_method, False, False, rand_low, rand_up, K, tolerate, tolerate_g, tolerate_distance, cg_formula, g_w, g_b, H_w, H_b, None, j, index,'b')
-                        t_bs.append(newton_1d(t_bs[j][index], 'b', backerror, H_back, g_w, g_b, H_w, H_b))
-                        
-                    elif search_method == 'regula_falsi':
-                        t_w0, t_w1 = self.regula_falsi(None, None, k_index, rand_low, rand_up, 'w', optim_method, K, tolerate, j)
-                        t_b0, t_b1 = self.regula_falsi(None, None, k_index, rand_low, rand_up, 'b', optim_method, K, tolerate, j)
-                        dis_w = np.linalg.norm(t_w0 - t_w1)
-                        dis_b = np.linalg.norm(t_b0 - t_b1)
-                        while (k < K) & (dis_w > tolerate) & (dis_b > tolerate):
-                            t_w0, t_w1 = self.regula_falsi(None, None, k_index, rand_low, rand_up, 'w', optim_method, K, tolerate, j)
-                            t_b0, t_b1 = self.regula_falsi(None, None, k_index, rand_low, rand_up, 'b', optim_method, K, tolerate, j)
-                            dis_w = np.linalg.norm(t_w0 - t_w1)
-                            dis_b = np.linalg.norm(t_b0 - t_b1)
-                            k += 1
-                        t_w = t_w1
-                        t_b = t_b1
-                    elif search_method == 'secant':
-                        t_w0, t_w1 = self.secant_method(None, None, rand_low, rand_up, 'w', optim_method, K, tolerate, j)
-                        t_b0, t_b1 = self.secant_method(None, None, rand_low, rand_up, 'b', optim_method, K, tolerate, j)
-                        dis_w = np.linalg.norm(t_w0 - t_w1)
-                        dis_b = np.linalg.norm(t_b0 - t_b1)
-                        while (k < K) & (dis_w > tolerate) & (dis_b > tolerate):
-                            t_w0, t_w1 = self.secant_method(None, None, rand_low, rand_up, 'w', optim_method, K, tolerate, j)
-                            t_b0, t_b1 = self.secant_method(None, None, rand_low, rand_up, 'b', optim_method,  K, tolerate, j)
-                            k += 1
-                        t_w = t_w1
-                        t_b = t_b1
-                t_wsum.append(t_ws)
-                t_bsum.append(t_bs)
-        return t_wsum, t_bsum
+            self.weight_tmp = self.weight
+            self.bias_tmp = self.bias
+            if linesearch_method == 'regula_falsi':
+                t_layers = t_layers0 if err0 < err1 else t_layers1
+            else:
+                t_layers = t_layers1
+        return t_layers # t_layers has forward order of moving step in each layers
     
-    def conjugate_gradient_pk(self, pk, gk, gk1, k_index, cg_formula, restart, last_step):
-        if (k_index == 0) | (restart == True):
+    def conjugate_gradient(self, linesearch_method, partial, rand_low, rand_up, K, tolerate, cg_formula):
+        k = 0
+        restart = [False] * len(self.weight)
+        n_step = [0] * len(self.weight)
+        gk = weights_error if partial == 'w' else bias_error
+        gk1 = gk
+        restart = self.n_step_check(restart, k)
+        pk = [-gk] * len(self.weight)
+        prev_start = ['steepest'] * len(self.weight)
+        while (np.linalg.norm(gk1) > tolerate) & (k < K):
+            t = self.linesearch(self, linesearch_method, partial, gk1, rand_low, rand_up, K, tolerate)
+            for i in range(len(self.weight)):
+                if (k == 0) | (restart[i] == True):
+                    t, dg_l, gk1, err = self.subupdate(k, t, pk, gk1, partial, linesearch_method, 'steepest')
+                    pk[i] = -gk[i]
+                    prev_step[i] = 'steepest'
+                else:
+                    pk[i], gk[i], gk1[i] = self.conjugate_gradient_pk(pk[i], gk[i], gk1[i], k, cg_formula, restart[i], prev_step[i])
+                    prev_step[i] = 'conjugate'
+                    t_layers, dg_l, gk1, err = self.subupdate(k, t, pk, gk1, partial, linesearch_method, optim_method)
+            k += 1
+        return pk
+            
+    
+    def n_step_check(self, restart, k):
+        for i in range(self.weight):
+            if partial == 'w':
+                param = self.weight[i]
+            else:
+                param = self.bias[i]
+                n_step[i] = (param.shape[0] * param.shape[1]) - 1
+                restart[i] = True if k >= n_step[i] else False
+        return restart
+    
+    def generate_startp(self, t1, partial, k):
+        detg_l = [None] * len(self.weight)
+        for j in range(samples):
+            output = self.x_train[j]
+            for m in range(self.layer):
+                if k == 0:
+                    weights_error = 0
+                if partial == 'w':
+                    self.weight_tmp[m] -= t1[m] * weights_error
+                else:
+                    self.bias_tmp[m] -= t1[m] * bias_error
+                output = self.forward_propagation(output, m)
+                        
+            err += self.loss(y_train[j], output)
+            output_error = self.loss_prime(y_train[j], output)
+            output_hessian = self.loss_h(y_train[j], output)
+            for n in reversed(range(self.layer)):
+                output_error, output_hessian, weights_error, bias_error, weight_h, bias_h = self.backward_prop(output_error, output_hessian, n, t1[n], pk, partial, True, False)
+                detg_l[n] = np.linalg.det(weights_error) if partial == 'w' else np.linalg.det(bias_error)
+        return detg_l
+    
+    def subupdate(self, k, t_layers, pk, start_g, partial, linesearch_method, optim_method):
+        dg_l = [None] * len(self.weight)
+        g_l = [None] * len(self.weight)
+        for j in range(samples):
+            output = self.x_train[j]
+            for m in range(self.layer):
+                if k == 0:
+                    weights_error = start_g
+                    bias_error = start_g
+                if partial == 'w':
+                    self.weight_tmp[m] -= t_layers[m] * weights_error
+                else:
+                    self.bias_tmp[m] -= t_layers[m] * bias_error
+                output = self.forward_propagation(output, m)
+                            
+            err += self.loss(y_train[j], output)
+            output_error = self.loss_prime(y_train[j], output)
+            output_hessian = self.loss_h(y_train[j], output)
+            if optim_method != 'conjugate':
+                for n in reversed(range(self.layer)):
+                    pk = weights_error if partial == 'w' else bias_error
+                    output_error, output_hessian, weights_error, bias_error, weight_h, bias_h = self.backward_prop(output_error, output_hessian, n, t_layers[n], pk, partial, True, False)
+                    if linesearch_method == 'newton':
+                        h = weight_h if partial == 'w' else bias_h
+                        g = weights_error if partial == 'w' else bias_error
+                        t_layers[n] = self.newton1d(t_layers[n], partial, g, h)
+                        g_l[n] = weights_error if partial == 'w' else bias_error
+                    else:
+                        dg_l[n] = np.linalg.det(weights_error) if partial == 'w' else np.linalg.det(bias_error)
+                        g_l[n] = weights_error if partial == 'w' else bias_error
+            else:
+                for n in reversed(range(self.layer)):
+                    output_error, output_hessian, weights_error, bias_error, weight_h, bias_h = self.backward_prop(output_error, output_hessian, n, t_layers[n], pk[n], partial, True, False)
+        return t_layers, dg_l, g_l, err
+                
+    
+    @staticmethod
+    def rf_sc(partial, t0, t1, g0, g1):
+        diff = g1 - g0
+        numerator = t0 * g1 - t1 * g0
+        t = np.linalg.inv(diff) @ numerator
+        return t 
+    
+    @staticmethod
+    def conjugate_gradient_pk(pk, gk, gk1, k, cg_formula, restart, last_step):
+        if (k == 0) | (restart == True):
             if last_step == 'steepest':
                 pk = - gk
                 g_k = gk
@@ -316,43 +311,18 @@ class NN:
             pk1 = -gk + (np.linalg.inv(np.matmul(g_k.T, g_k)) @ np.matmul(g_k1.T, g_k1 - g_k)) @ pk
         elif cg_formula == 'Fletcher':
             pk1 = -gk + (np.linalg.inv(np.matmul(g_k.T, g_k)) @ np.matmul(g_k1.T, g_k1)) @ pk
-        return pk1
+        return pk1, g_k, g_k1
+                
     
-    def conjugate_gradient(self, partial, search_method, rand_low, rand_up, K, tolerate_g, tolerate_distance, cg_formula, \
-                         g_w0, g_b0, g_w1, g_b1):
-        k = 0
-        step = 0
-        g_w0, g_b0, H_w0, H_b0 = self.initialize()
-        # for index, layer in enumerate(reversed(self.layers)):
-        back_error0, g_w0, g_b0, H_w0, H_b0 = self.back_prop(back_error0, None, None, None, 'steepest', search_method, True, True, rand_low, rand_up, K, tolerate, tolerate_g, tolerate_distance, cg_formula, g_w0, g_b0, H_w0, H_b0, None)
-        g_k = g_w0 if partial == 'w' else g_b0
-        pk1 = self.conjugate_gradient_pk(pk, g_k, None, 0, cg_formula, True, 'steepest')
-        back_error1, g_w1, g_b1, H_w1, H_b1 = self.back_prop(back_error0, None, None, None, 'steepest', search_method, True, True, rand_low, rand_up, K, tolerate, tolerate_g, tolerate_distance, cg_formula, g_w0, g_b0, H_w0, H_b0, pk1)
-        k += 1
-        last = 'conjugate'
-        while (np.linalg.norm(g_w1) > tolerate) & (k < K):
-            n_step = (self.weight.shape[0] * self.weight.shape[1]) - 1 if partial == 'w' else (self.bias.shape[0] * self.bias.shape[1]) - 1
-            dis = np.linalg.norm(np.matmul(np.matmul(g_w0.T, H_w1), g_w1)) if partial == 'w' else np.linalg.norm(np.matmul(np.matmul(g_b0.T, H_b1), g_b1))
-            if (dis <= tolerate_distance) | (step <= n_step) | ():
-                g_k = g_w0 if partial == 'w' else g_b0
-                g_k1 = g_w1 if partial == 'w' else g_b1
-                g_wtmp = g_w1
-                g_btmp = g_b1
-                pk1 = pk1 if last == 'conjugate' else - g_k1
-                pk1 = self.conjugate_gradient_pk(pk1, g_k, g_k1, k, cg_formula, False, last)
-                back_error1, g_w1, g_b1, H_w1, H_b1 = self.back_prop(back_error0, None, None, None, 'conjugate', search_method, True, True, rand_low, rand_up, K, tolerate, tolerate_g, tolerate_distance, cg_formula, g_w0, g_b0, H_w0, H_b0, pk1)
-                g_w0 = g_wtmp
-                g_b0 = g_btmp
-                k += 1
-                step += 1
-                last = 'conjugate'
-            else:
-                g_k = g_w0 if partial == 'w' else g_b0
-                g_k1 = g_w1 if partial == 'w' else g_b1
-                pk1 = - g_k1
-                pk1 = self.conjugate_gradient_pk(pk1, g_k, g_k1, k, cg_formula, False, 'conjugate')
-                back_error1, g_w1, g_b1, H_w1, H_b1 = self.back_prop(back_error0, None, None, None, 'conjugate', search_method, True, True, rand_low, rand_up, K, tolerate, tolerate_g, tolerate_distance, cg_formula, g_w0, g_b0, H_w0, H_b0, pk1)
-                k += 1
-                step = 0
-                last = 'steepest'
-        return pk1
+    def predict(self, X):
+        result = []
+        N = X.shape[0] # number of observations
+        # running through X row by row, so actually the input data is a piece of vector with 1 * D repeated for N times
+        for i in range(N):
+            # go through all layers in NN
+            output = X[i]
+            for layer in self.layers:
+                output = layer.forward_prop(output)
+            result.append(output)
+        return result
+    
